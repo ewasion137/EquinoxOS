@@ -5,7 +5,7 @@ OBJCOPY = objcopy
 EMU = qemu-system-x86_64
 
 # Добавили shell.o в список объектов
-OBJ = kernel_entry.o kernel.o io.o screen.o keyboard.o gdt.o gdt_flush.o idt.o interrupt.o pic.o shell.o timer.o ata.o memory.o fs.o
+OBJ = kernel_entry.o kernel.o io.o screen.o keyboard.o gdt.o gdt_flush.o idt.o interrupt.o pic.o shell.o timer.o ata.o memory.o fs.o vga.o
 
 # Добавили путь к папке shell в инклюды
 CFLAGS = -ffreestanding -m32 -fno-pie -fno-stack-protector -fno-leading-underscore -Isrc -Isrc/drivers -Isrc/shell
@@ -33,6 +33,9 @@ screen.o: src/drivers/screen/screen.c
 
 keyboard.o: src/drivers/keyboard/keyboard.c
 	$(CC) $(CFLAGS) -c src/drivers/keyboard/keyboard.c -o keyboard.o
+
+vga.o: src/drivers/vga/vga.c
+	$(CC) $(CFLAGS) -c src/drivers/vga/vga.c -o vga.o
 
 # --- НОВОЕ: Менеджер команд (Shell) ---
 shell.o: src/shell/shell.c

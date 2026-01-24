@@ -8,6 +8,7 @@
 #include "../system/timer.h"
 #include "drivers/disk/ata.h"
 #include "../fs/fs.h"
+#include "drivers/vga/vga.h"
 
 // Глобальные координаты (объявлены здесь, используются везде через extern)
 int current_col = 0;
@@ -63,17 +64,19 @@ void kmain() {
     init_idt();
     init_timer(100);
     
-    clear_screen();
-
-    // --- ТЕСТ ДИСКА ---
-    kprint("Checking Storage Drive... ");
-    unsigned char test_sector[512];
-    // Читаем 0-й сектор Slave диска (fs.img)
-    read_sectors_ata_pio((uint32_t)test_sector, 0, 1);
-    kprint("OK!\n");
-    // ------------------
-
-    kprint("> ");
+    // --- ПЕРЕХОД В ГРАФИКУ ---
+    init_vga();
     
+    // Теперь kprint не работает! Рисуем пикселями.
+    
+    // Зальем фон синим (стиль BSOD)
+    clear_screen_vga(COLOR_BLUE);
+    
+    // Нарисуем красный квадрат в центре
+    draw_rect(140, 80, 40, 40, COLOR_RED);
+    
+    // Нарисуем зеленую линию
+    draw_rect(0, 190, 320, 10, COLOR_GREEN);
+
     while(1) { __asm__ __volatile__("hlt"); }
 }
