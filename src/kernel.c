@@ -6,6 +6,8 @@
 #include "system/pic.h"
 #include "shell/shell.h"
 #include "../system/timer.h"
+#include "drivers/disk/ata.h"
+#include "../fs/fs.h"
 
 // Глобальные координаты (объявлены здесь, используются везде через extern)
 int current_col = 0;
@@ -56,22 +58,22 @@ void keyboard_callback() {
 }
 
 void kmain() {
-    // 1. Инициализация критических узлов
     init_gdt();
     pic_remap();
     init_idt();
     init_timer(100);
     
-    // 2. Подготовка экрана
     clear_screen();
-    
-    // 3. Приветствие
-    kprintf("EquinoxOS Alpha [Build 2026]\n");
-    kprintf("Kernel loaded at: 0x%d\n", 0x1000);
-    kprint("Type 'help' to see commands.\n\n> ");
 
-    // 4. Главный цикл (спим до прихода прерывания)
-    while(1) {
-        __asm__ __volatile__("hlt");
-    }
+    // --- ТЕСТ ДИСКА ---
+    kprint("Checking Storage Drive... ");
+    unsigned char test_sector[512];
+    // Читаем 0-й сектор Slave диска (fs.img)
+    read_sectors_ata_pio((uint32_t)test_sector, 0, 1);
+    kprint("OK!\n");
+    // ------------------
+
+    kprint("> ");
+    
+    while(1) { __asm__ __volatile__("hlt"); }
 }

@@ -5,7 +5,7 @@ OBJCOPY = objcopy
 EMU = qemu-system-x86_64
 
 # Добавили shell.o в список объектов
-OBJ = kernel_entry.o kernel.o io.o screen.o keyboard.o gdt.o gdt_flush.o idt.o interrupt.o pic.o shell.o timer.o
+OBJ = kernel_entry.o kernel.o io.o screen.o keyboard.o gdt.o gdt_flush.o idt.o interrupt.o pic.o shell.o timer.o ata.o memory.o fs.o
 
 # Добавили путь к папке shell в инклюды
 CFLAGS = -ffreestanding -m32 -fno-pie -fno-stack-protector -fno-leading-underscore -Isrc -Isrc/drivers -Isrc/shell
@@ -56,6 +56,15 @@ interrupt.o: src/system/interrupt.asm
 timer.o: src/system/timer.c
 	$(CC) $(CFLAGS) -c src/system/timer.c -o timer.o
 
+ata.o: src/drivers/disk/ata.c
+	$(CC) $(CFLAGS) -c src/drivers/disk/ata.c -o ata.o
+
+memory.o: src/system/memory.c
+	$(CC) $(CFLAGS) -c src/system/memory.c memory.o
+
+fs.o: src/fs/fs.c
+	$(CC) $(CFLAGS) -c src/fs/fs.c fs.o
+
 # 5. Линковка (kernel_entry.o ВСЕГДА ПЕРВЫЙ!)
 kernel.bin: $(OBJ)
 	$(LD) -m i386pe -T src/linker.ld $(OBJ) -o kernel.tmp
@@ -66,7 +75,7 @@ os-image.bin: boot.bin kernel.bin
 	copy /b boot.bin + kernel.bin os-image.bin
 
 run:
-	$(EMU) -drive format=raw,file=os-image.bin
+	$(EMU) -drive format=raw,file=os-image.bin,index=0,media=disk -drive format=raw,file=fs.img,index=1,media=disk
 
 clean:
 	del *.bin *.o *.tmp
