@@ -2,6 +2,9 @@
 #include "shell.h"
 #include "../drivers/screen/screen.h"
 #include "../io/io.h"
+#include "../system/timer.h"
+
+extern uint32_t tick;
 
 // Сравнение строк
 int str_compare(char* s1, char* s2) {
@@ -42,6 +45,8 @@ void execute_command(char* input) {
         shell_beep();
     } else if (input[0] == '\0') {
         // Пропускаем пустой ввод
+    } else if (str_compare(input, "uptime") == 0) {
+        shell_uptime();
     } else {
         kprintf("Unknown command: %s\n", input);
     }
@@ -59,4 +64,12 @@ void shell_beep() {
     play_sound(1000);
     for(int i = 0; i < 20000000; i++) { __asm__("nop"); }
     stop_sound();
+}
+
+void shell_uptime() {
+    uint32_t total_seconds = tick / 100;
+    uint32_t minutes = total_seconds / 60;
+    uint32_t seconds = total_seconds % 60;
+
+    kprintf("System Uptime: %d min, %d sec (Total ticks: %d)\n", minutes, seconds, tick);
 }

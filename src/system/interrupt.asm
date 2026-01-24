@@ -3,7 +3,8 @@
 ; ГОВОРИМ, ЧТО ЭТИ ФУНКЦИИ ВИДНЫ СНАРУЖИ
 [global isr_stub]
 [global keyboard_handler]
-
+[global timer_handler]
+[extern timer_callback]
 [extern keyboard_callback]
 
 ; 1. Общий обработчик (заглушка)
@@ -18,6 +19,15 @@ isr_stub:
 keyboard_handler:
     pusha
     call keyboard_callback
+    mov al, 0x20
+    out 0x20, al
+    popa
+    iret
+
+
+timer_handler:
+    pusha
+    call timer_callback
     mov al, 0x20
     out 0x20, al
     popa

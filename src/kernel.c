@@ -5,6 +5,7 @@
 #include "system/idt.h"
 #include "system/pic.h"
 #include "shell/shell.h"
+#include "../system/timer.h"
 
 // Глобальные координаты (объявлены здесь, используются везде через extern)
 int current_col = 0;
@@ -59,6 +60,7 @@ void kmain() {
     init_gdt();
     pic_remap();
     init_idt();
+    init_timer(100);
     
     // 2. Подготовка экрана
     clear_screen();

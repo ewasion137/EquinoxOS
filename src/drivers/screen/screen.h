@@ -15,7 +15,7 @@ void kprint(char* message);
 void kprint_at(char* message, int col, int row);
 void update_cursor(int x, int y);
 void scroll_screen();
-
+void itoa(int n, char str[]);
 // Наша новая крутая печать
 void kprintf(char* format, ...);
 
