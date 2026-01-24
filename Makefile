@@ -3,9 +3,12 @@ CC = gcc
 LD = ld
 OBJCOPY = objcopy
 EMU = qemu-system-x86_64
-OBJ = kernel_entry.o kernel.o io.o screen.o keyboard.o gdt.o gdt_flush.o idt.o interrupt.o pic.o
-# Флаги компиляции (обязательно -Isrc для поиска заголовков)
-CFLAGS = -ffreestanding -m32 -fno-pie -fno-stack-protector -fno-leading-underscore -Isrc -Isrc/drivers
+
+# Добавили shell.o в список объектов
+OBJ = kernel_entry.o kernel.o io.o screen.o keyboard.o gdt.o gdt_flush.o idt.o interrupt.o pic.o shell.o
+
+# Добавили путь к папке shell в инклюды
+CFLAGS = -ffreestanding -m32 -fno-pie -fno-stack-protector -fno-leading-underscore -Isrc -Isrc/drivers -Isrc/shell
 
 all: os-image.bin run
 
@@ -21,7 +24,7 @@ kernel_entry.o: src/boot/kernel_entry.asm
 kernel.o: src/kernel.c
 	$(CC) $(CFLAGS) -c src/kernel.c -o kernel.o
 
-# 4. Драйвер I/O
+# 4. Драйверы и системные модули
 io.o: src/io/io.c
 	$(CC) $(CFLAGS) -c src/io/io.c -o io.o
 
@@ -31,10 +34,13 @@ screen.o: src/drivers/screen/screen.c
 keyboard.o: src/drivers/keyboard/keyboard.c
 	$(CC) $(CFLAGS) -c src/drivers/keyboard/keyboard.c -o keyboard.o
 
+# --- НОВОЕ: Менеджер команд (Shell) ---
+shell.o: src/shell/shell.c
+	$(CC) $(CFLAGS) -c src/shell/shell.c -o shell.o
+
 gdt.o: src/system/gdt.c
 	$(CC) $(CFLAGS) -c src/system/gdt.c -o gdt.o
 
-# Правило для gdt_flush (Ассемблер-файл)
 gdt_flush.o: src/system/gdt_flush.asm
 	$(ASM) -f elf32 src/system/gdt_flush.asm -o gdt_flush.o
 
