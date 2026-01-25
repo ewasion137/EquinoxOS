@@ -1,3 +1,5 @@
+/* linker ld */
+
 ENTRY(kmain)
 
 SECTIONS
