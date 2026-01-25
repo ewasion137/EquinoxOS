@@ -7,7 +7,7 @@ OBJCOPY = objcopy
 EMU = qemu-system-x86_64
 
 # Добавили shell.o в список объектов
-OBJ = kernel_entry.o kernel.o io.o screen.o keyboard.o gdt.o gdt_flush.o idt.o interrupt.o pic.o shell.o timer.o ata.o memory.o fs.o vga.o font.o
+OBJ = kernel_entry.o kernel.o io.o screen.o keyboard.o gdt.o gdt_flush.o idt.o interrupt.o pic.o shell.o timer.o ata.o memory.o fs.o vesa.o
 
 # Добавили путь к папке shell в инклюды
 CFLAGS = -ffreestanding -m32 -fno-pie -fno-stack-protector -fno-leading-underscore -Isrc -Isrc/drivers -Isrc/shell
@@ -36,9 +36,6 @@ screen.o: src/drivers/screen/screen.c
 keyboard.o: src/drivers/keyboard/keyboard.c
 	$(CC) $(CFLAGS) -c src/drivers/keyboard/keyboard.c -o keyboard.o
 
-vga.o: src/drivers/vga/vga.c
-	$(CC) $(CFLAGS) -c src/drivers/vga/vga.c -o vga.o
-
 # --- НОВОЕ: Менеджер команд (Shell) ---
 shell.o: src/shell/shell.c
 	$(CC) $(CFLAGS) -c src/shell/shell.c -o shell.o
@@ -58,9 +55,6 @@ pic.o: src/system/pic.c
 interrupt.o: src/system/interrupt.asm
 	$(ASM) -f elf32 src/system/interrupt.asm -o interrupt.o
 
-font.o: src/drivers/vga/font.psf
-	objcopy -I binary -O pe-i386 -B i386 src/drivers/vga/font.psf font.o
-
 timer.o: src/system/timer.c
 	$(CC) $(CFLAGS) -c src/system/timer.c -o timer.o
 
@@ -72,6 +66,9 @@ memory.o: src/system/memory.c
 
 fs.o: src/fs/fs.c
 	$(CC) $(CFLAGS) -c src/fs/fs.c -o fs.o
+
+vesa.o: src/drivers/vga/vesa.c
+	$(CC) $(CFLAGS) -c src/drivers/vga/vesa.c -o vesa.o
 
 # 5. Линковка (kernel_entry.o ВСЕГДА ПЕРВЫЙ!)
 kernel.bin: $(OBJ)

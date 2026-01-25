@@ -9,7 +9,7 @@
 #include "../system/timer.h"
 #include "drivers/disk/ata.h"
 #include "../fs/fs.h"
-#include "drivers/vga/vga.h"
+#include "drivers/vga/vesa.h"
 
 // Глобальные координаты (объявлены здесь, используются везде через extern)
 int current_col = 0;
@@ -59,23 +59,21 @@ void keyboard_callback() {
     }
 }
 
-// В файле src/kernel.c
-
-void kmain() {
+void kmain(uint32_t fb_addr) {
     init_gdt();
-    pic_remap();
-    init_idt();
-    init_timer(100);
-    
-    // --- ПЕРЕХОД В ГРАФИКУ ---
-    init_vga();
-    clear_screen_vga(COLOR_BLUE); // Залей синим для контраста
-    draw_string("EquinoxOS Graphic Mode", 10, 10, COLOR_WHITE, COLOR_BLUE);
-    draw_string("Testing font8x8... OK!", 10, 25, COLOR_GREEN, COLOR_BLUE);
+    init_vesa(fb_addr);
 
-    // Бесконечный цикл, чтобы процессор не сгорал
-    // Твой while(1) {} надо заменить на это:
-    while(1) { 
-        __asm__ __volatile__("hlt"); 
-    }
+    draw_background(); // Твой градиент
+
+    // Рисуем полупрозрачное "стеклянное" окно (alpha = 150)
+    draw_transparent_rect(100, 100, 600, 400, 0xFFFFFF, 150);
+
+    // Рисуем заголовок окна (синий, непрозрачный)
+    draw_rect(100, 100, 600, 30, 0x0055AA);
+
+    // Пишем текст
+    vesa_draw_string("EquinoxOS - Aero Shell v0.0.4", 110, 110, 0xFFFFFF);
+    vesa_draw_string("Welcome to the graphical era.", 120, 150, 0x000000);
+
+    while(1) { __asm__ __volatile__("hlt"); }
 }

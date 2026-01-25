@@ -1,4 +1,7 @@
 [bits 32]
-[extern kmain] ; Говорим, что __main находится в другом файле (kernel.c)
-call kmain     ; Вызываем наше ядро
-jmp $           ; Если ядро вдруг вернет управление, зависаем здесь
+[extern kmain]
+
+_start:
+
+    call kmain
+    jmp $
