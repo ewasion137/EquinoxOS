@@ -1,56 +1,40 @@
+
 [bits 16]
 [org 0x7c00]
 
 KERNEL_OFFSET equ 0x1000 
 
 start:
-    mov [BOOT_DRIVE], dl
-    mov bp, 0x9000
-    mov sp, bp
+    mov [BOOT_DRIVE], dl 
 
-    ; --- 1. ЗАГРУЗКА ЯДРА (ТРИ ЧАСТИ) ---
-    
-    ; Часть 1: Читаем первые 127 секторов
+    ; 1. Загружаем ядро
     mov bx, KERNEL_OFFSET
-    mov dh, 127
+    mov dh, 127         ; Увеличил до 50 секторов, ядро будет расти!
     mov dl, [BOOT_DRIVE]
-    mov cl, 2
     call disk_load
 
-    ; Часть 2: Читаем следующие 127 секторов
-    add bx, 0xFE00      ; Сдвигаем адрес записи (127 * 512 = 0xFE00)
-    mov dh, 127
-    mov dl, [BOOT_DRIVE]
-    mov cl, 129         ; Начинаем со 129-го сектора (2 + 127)
-    call disk_load
-
-    ; Часть 3: Читаем еще 127 секторов (для запаса)
-    add bx, 0xFE00      ; Сдвигаем адрес еще раз
-    mov dh, 127
-    mov dl, [BOOT_DRIVE]
-    mov cl, 256         ; Начинаем с 256-го сектора (129 + 127)
-    call disk_load
-
-    ; --- 2. НАСТРОЙКА VESA ---
-    mov ax, 0x4F01
-    mov cx, 0x4143      ; 800x600x32
-    mov di, 0x7000
+    ; --- 2. УМНАЯ НАСТРОЙКА VESA (800x600, 32 bit) ---
+    mov ax, 0x4F01      ; Функция получения инфы о режиме
+    mov cx, 0x4143       ; Код режима (0x115 = 800x600, 32-bit TrueColor)
+    mov di, 0x7000      ; Сюда BIOS запишет структуру VBE Mode Info
     int 0x10
 
-    mov eax, [0x7028]
-    mov [vbe_fb], eax
+    ; Сохраняем адрес видеобуфера (он лежит по смещению 40 в структуре)
+    mov eax, [0x7028]   
+    mov [vbe_fb], eax   ; Сохраняем для ядра
 
-    mov ax, 0x4F02
-    mov bx, 0x4143
+    mov ax, 0x4F02      ; Функция установки режима
+    mov bx, 0x4143      ; 0x4000 (флаг LFB) + 0x115 (режим)
     int 0x10
+    ; -----------------------------------------------
 
-    ; --- 3. ПЕРЕХОД В 32-БИТНЫЙ РЕЖИМ ---
-    cli
-    lgdt [gdt_descriptor]
+    ; 3. Переходим в 32-битный режим
+    cli                 
+    lgdt [gdt_descriptor] 
     mov eax, cr0
-    or eax, 0x1
+    or eax, 0x1         
     mov cr0, eax
-    jmp CODE_SEG:init_32bit
+    jmp CODE_SEG:init_32bit 
 
 [bits 32]
 init_32bit:
@@ -60,9 +44,13 @@ init_32bit:
     mov es, ax
     mov fs, ax
     mov gs, ax
-    mov esp, 0x90000
+
+    mov esp, 0x90000    
     
+    ; ПЕРЕДАЕМ АДРЕС ЭКРАНА В ЯДРО ЧЕРЕЗ СТЕК
     push dword [vbe_fb]
+    
+    push dword [vbe_fb] ; Кладем адрес экрана в стек
     jmp KERNEL_OFFSET
     jmp $
 
@@ -70,25 +58,32 @@ disk_load:
     push dx
     mov ah, 0x02
     mov al, dh
-    mov ch, 0
-    mov dh, 0
+    mov ch, 0x00
+    mov dh, 0x00
+    mov cl, 0x02
     int 0x13
-    jc disk_error
     pop dx
     ret
 
-disk_error:
-    jmp $
-
-; --- GDT и прочее ---
 gdt_start:
-    dq 0x0
-gdt_code:
-    dw 0xffff, 0x0
-    db 0x0, 10011010b, 11001111b, 0x0
-gdt_data:
-    dw 0xffff, 0x0
-    db 0x0, 10010010b, 11001111b, 0x0
+    dq 0x0          ; Пустой дескриптор (обязательно)
+
+gdt_code:           ; Сегмент кода
+    dw 0xffff       ; Limit (0-15)
+    dw 0x0          ; Base (0-15)
+    db 0x0          ; Base (16-23)
+    db 10011010b    ; Access byte
+    db 11001111b    ; Flags + Limit (16-19)
+    db 0x0          ; Base (24-31)
+
+gdt_data:           ; Сегмент данных
+    dw 0xffff       ; Limit (0-15)
+    dw 0x0          ; Base (0-15)
+    db 0x0          ; Base (16-23)
+    db 10010010b    ; Access byte
+    db 11001111b    ; Flags + Limit (16-19)
+    db 0x0          ; Base (24-31)
+
 gdt_end:
 
 gdt_descriptor:
@@ -97,9 +92,8 @@ gdt_descriptor:
 
 CODE_SEG equ gdt_code - gdt_start
 DATA_SEG equ gdt_data - gdt_start
-
 BOOT_DRIVE db 0
-vbe_fb     dd 0
+vbe_fb dd 0             ; Тут будет храниться адрес экрана
 
 times 510-($-$$) db 0
 dw 0xaa55

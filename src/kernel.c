@@ -62,18 +62,16 @@ void kmain(uint32_t fb_addr) {
     init_gdt();
     init_vesa(fb_addr);
 
-    draw_background(); // Твой градиент
+    // 1. Фон
+    draw_background(); 
 
-    // Рисуем полупрозрачное "стеклянное" окно (alpha = 150)
+    // 2. Стеклянное окно
     draw_transparent_rect(100, 100, 600, 400, 0xFFFFFF, 150);
-
-    // Рисуем заголовок окна (синий, непрозрачный)
     draw_rect(100, 100, 600, 30, 0x0055AA);
-    draw_equinox_logo(300, 200); 
 
-    // Пишем текст
-    vesa_draw_string("EquinoxOS - Aero Shell v0.0.4", 110, 110, 0xFFFFFF);
-    vesa_draw_string("Welcome to the graphical era.", 120, 150, 0x000000);
+    // 3. Текст
+    vesa_draw_string("EquinoxOS - Back to Stability", 110, 110, 0xFFFFFF);
+    vesa_draw_string("Kernel is alive. No heavy assets loaded.", 120, 150, 0x000000);
 
     while(1) { __asm__ __volatile__("hlt"); }
 }
