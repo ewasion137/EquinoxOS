@@ -69,6 +69,7 @@ void kmain(uint32_t fb_addr) {
 
     // Рисуем заголовок окна (синий, непрозрачный)
     draw_rect(100, 100, 600, 30, 0x0055AA);
+    draw_equinox_logo(300, 200); 
 
     // Пишем текст
     vesa_draw_string("EquinoxOS - Aero Shell v0.0.4", 110, 110, 0xFFFFFF);

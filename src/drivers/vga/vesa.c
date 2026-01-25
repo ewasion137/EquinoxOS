@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include "font8x8.h"
+#include "logo.h"
 
 uint32_t* framebuffer;    // Реальная видеопамять (0xA0000000...)
 uint32_t* backbuffer;     // Черновик для текущего кадра
@@ -77,3 +78,26 @@ void draw_rect(int x, int y, int w, int h, uint32_t color) {
     }
 }
 
+void draw_equinox_logo(int start_x, int start_y) {
+    int width = 200;  // Укажи здесь ширину, которую ставил в конвертере
+    int height = 200; // И высоту
+
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            // Рассчитываем индекс: каждые 3 байта - это один пиксель (R, G, B)
+            int i = (y * width + x) * 3;
+
+            uint8_t r = logo[i];
+            uint8_t g = logo[i + 1];
+            uint8_t b = logo[i + 2];
+
+            // Собираем цвет (в VESA 32-bit обычно порядок 0xRRGGBB)
+            uint32_t color = (r << 16) | (g << 8) | b;
+
+            // Рисуем, если это не черный фон (простейшая прозрачность)
+            if (color != 0x000000) {
+                put_pixel(start_x + x, start_y + y, color);
+            }
+        }
+    }
+}

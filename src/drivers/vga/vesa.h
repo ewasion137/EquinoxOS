@@ -25,5 +25,6 @@ void draw_background(); // Функция для градиента
 void vesa_draw_string(const char* s, int x, int y, uint32_t fg);
 void vesa_draw_char(char c, int x, int y, uint32_t fg);
 void draw_transparent_rect(int x, int y, int w, int h, uint32_t color, uint8_t alpha);
+void draw_equinox_logo(int start_x, int start_y);
 
 #endif
