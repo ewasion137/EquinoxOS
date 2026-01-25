@@ -63,14 +63,14 @@ ata.o: src/drivers/disk/ata.c
 	$(CC) $(CFLAGS) -c src/drivers/disk/ata.c -o ata.o
 
 memory.o: src/system/memory.c
-	$(CC) $(CFLAGS) -c src/system/memory.c memory.o
+	$(CC) $(CFLAGS) -c src/system/memory.c -o memory.o
 
 fs.o: src/fs/fs.c
-	$(CC) $(CFLAGS) -c src/fs/fs.c fs.o
+	$(CC) $(CFLAGS) -c src/fs/fs.c -o fs.o
 
 # 5. Линковка (kernel_entry.o ВСЕГДА ПЕРВЫЙ!)
 kernel.bin: $(OBJ)
-	$(LD) -m i386pe -T src/linker.ld $(OBJ) -o kernel.tmp
+	$(LD) -m i386pe --image-base 0 -T src/linker.ld $(OBJ) -o kernel.tmp
 	$(OBJCOPY) -O binary kernel.tmp kernel.bin
 
 # 6. Склейка образа
