@@ -1,4 +1,3 @@
-// kernel.c
 #include "io/io.h"
 #include "drivers/screen/screen.h"
 #include "drivers/keyboard/keyboard.h"
@@ -14,10 +13,8 @@
 // Глобальные координаты (объявлены здесь, используются везде через extern)
 int current_col = 0;
 int current_row = 0;
-extern int mouse_x;
-extern int mouse_y;
-extern void init_mouse();
 
+// Буфер для ввода команд
 char key_buffer[256];
 int buffer_idx = 0;
 
@@ -63,29 +60,19 @@ void keyboard_callback() {
 
 void kmain(uint32_t fb_addr) {
     init_gdt();
-    init_idt();
-    pic_remap();
     init_vesa(fb_addr);
-    
-    // 1. Сначала один раз готовим фон
-    init_background(); 
-    
-    init_mouse();
-    __asm__("sti");
 
-    while(1) {
-        // 2. Копируем чистый фон в буфер (стирает всё старое)
-        vesa_prepare_frame();
+    draw_background(); // Твой градиент
 
-        // 3. Рисуем интерфейс Aero
-        draw_transparent_rect(150, 100, 500, 350, 0xFFFFFF, 160);
-        draw_rect(150, 100, 500, 30, 0x0055AA);
-        vesa_draw_string("EquinoxOS - Aero Glass Environment", 160, 110, 0xFFFFFF);
+    // Рисуем полупрозрачное "стеклянное" окно (alpha = 150)
+    draw_transparent_rect(100, 100, 600, 400, 0xFFFFFF, 150);
 
-        // 4. Рисуем мышь ПОВЕРХ окна
-        draw_cursor(mouse_x, mouse_y);
+    // Рисуем заголовок окна (синий, непрозрачный)
+    draw_rect(100, 100, 600, 30, 0x0055AA);
 
-        // 5. Выкидываем всё на монитор
-        vesa_update(); 
-    }
+    // Пишем текст
+    vesa_draw_string("EquinoxOS - Aero Shell v0.0.4", 110, 110, 0xFFFFFF);
+    vesa_draw_string("Welcome to the graphical era.", 120, 150, 0x000000);
+
+    while(1) { __asm__ __volatile__("hlt"); }
 }
