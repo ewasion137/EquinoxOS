@@ -7,7 +7,7 @@ OBJCOPY = objcopy
 EMU = qemu-system-x86_64
 
 # Добавили shell.o в список объектов
-OBJ = kernel_entry.o kernel.o io.o screen.o keyboard.o gdt.o gdt_flush.o idt.o interrupt.o pic.o shell.o timer.o ata.o memory.o fs.o vesa.o
+OBJ = kernel_entry.o kernel.o io.o screen.o keyboard.o gdt.o gdt_flush.o idt.o interrupt.o pic.o shell.o timer.o ata.o memory.o fs.o vesa.o mouse.o
 
 # Добавили путь к папке shell в инклюды
 CFLAGS = -ffreestanding -m32 -fno-pie -fno-stack-protector -fno-leading-underscore -Isrc -Isrc/drivers -Isrc/shell
@@ -51,6 +51,9 @@ idt.o: src/system/idt.c
 
 pic.o: src/system/pic.c
 	$(CC) $(CFLAGS) -c src/system/pic.c -o pic.o
+
+mouse.o: src/drivers/mouse/mouse.c
+	$(CC) $(CFLAGS) -c src/drivers/mouse/mouse.c -o mouse.o
 
 interrupt.o: src/system/interrupt.asm
 	$(ASM) -f elf32 src/system/interrupt.asm -o interrupt.o

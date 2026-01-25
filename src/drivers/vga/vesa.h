@@ -26,6 +26,10 @@ void draw_background(); // Функция для градиента
 void vesa_draw_string(const char* s, int x, int y, uint32_t fg);
 void vesa_draw_char(char c, int x, int y, uint32_t fg);
 void draw_transparent_rect(int x, int y, int w, int h, uint32_t color, uint8_t alpha);
-
+void draw_cursor(int x, int y);
+void vesa_update();
+void vesa_fast_copy(uint32_t* src, uint32_t* dst);
+void init_background();
+void vesa_prepare_frame();
 
 #endif

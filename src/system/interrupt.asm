@@ -6,6 +6,8 @@
 [global timer_handler]
 [extern timer_callback]
 [extern keyboard_callback]
+[global irq12]
+[extern mouse_handler]
 
 ; 1. Общий обработчик (заглушка)
 isr_stub:
@@ -32,3 +34,9 @@ timer_handler:
     out 0x20, al
     popa
     iret
+    
+irq12:
+    pushad
+    call mouse_handler
+    popad
+    iretd

@@ -1,18 +1,31 @@
 #include <stdint.h>
 #include "font8x8.h"
+#include "../mouse/mouse.h"
 
-uint32_t* framebuffer;
+uint32_t* framebuffer;    // Реальная видеопамять (0xA0000000...)
+uint32_t* backbuffer;     // Черновик для текущего кадра
+uint32_t* bg_buffer;
 int screen_width = 800;
 int screen_height = 600;
 
 void init_vesa(uint32_t fb_addr) {
     framebuffer = (uint32_t*)fb_addr;
+    backbuffer = (uint32_t*)0x2000000;
+    bg_buffer   = (uint32_t*)0x3000000;  
 }
 
 // Теперь цвет - это 0xRRGGBB
 void put_pixel(int x, int y, uint32_t color) {
-    if (x >= 0 && x < screen_width && y >= 0 && y < screen_height) {
-        framebuffer[y * screen_width + x] = color;
+    if (x >= 0 && x < 800 && y >= 0 && y < 600) {
+        backbuffer[y * 800 + x] = color;
+    }
+}
+
+void vesa_update() {
+    uint32_t* src = backbuffer;
+    uint32_t* dst = framebuffer;
+    for (int i = 0; i < 800 * 600; i++) {
+        dst[i] = src[i];
     }
 }
 
@@ -76,5 +89,40 @@ void draw_rect(int x, int y, int w, int h, uint32_t color) {
         for (int j = x; j < x + w; j++) {
             put_pixel(j, i, color);
         }
+    }
+}
+
+void draw_cursor(int x, int y) {
+    // Рисуем белый крестик 10x10
+    draw_rect(x - 5, y, 10, 2, 0xFFFFFF);
+    draw_rect(x, y - 5, 2, 10, 0xFFFFFF);
+}
+
+void vesa_fast_copy(uint32_t* src, uint32_t* dst) {
+    // Копируем 800 * 600 двойных слов (4 байта)
+    asm volatile (
+        "movl %2, %%ecx;"    // Сколько копировать (count)
+        "movl %0, %%esi;"    // Откуда (source)
+        "movl %1, %%edi;"    // Куда (destination)
+        "rep movsl;"         // ПАХ-ПАХ-ПАХ! Копируем всё разом
+        :
+        : "g" (src), "g" (dst), "g" (800 * 600)
+        : "ecx", "esi", "edi", "memory"
+    );
+}
+
+void init_background() {
+    for (int y = 0; y < 600; y++) {
+        // Синий градиент
+        uint32_t color = blend(0x001144, 0x0044AA, (y * 255) / 600);
+        for (int x = 0; x < 800; x++) {
+            bg_buffer[y * 800 + x] = color;
+        }
+    }
+}
+
+void vesa_prepare_frame() {
+    for (int i = 0; i < 800 * 600; i++) {
+        backbuffer[i] = bg_buffer[i];
     }
 }
