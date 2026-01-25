@@ -22,7 +22,7 @@ void init_vga();
 void put_pixel(int x, int y, uint8_t color);
 void draw_rect(int x, int y, int w, int h, uint8_t color);
 void clear_screen_vga(uint8_t color);
-void draw_char(int x, int y, char c, uint8_t color);
-void draw_string(int x, int y, char* str, uint8_t color);
+void draw_char(char c, int x, int y, uint8_t fg, uint8_t bg);
+void draw_string(const char* s, int x, int y, uint8_t fg, uint8_t bg);
 
 #endif

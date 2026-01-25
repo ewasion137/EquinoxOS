@@ -59,38 +59,23 @@ void keyboard_callback() {
     }
 }
 
+// В файле src/kernel.c
+
 void kmain() {
     init_gdt();
     pic_remap();
     init_idt();
     init_timer(100);
     
-    // Включаем графику
+    // --- ПЕРЕХОД В ГРАФИКУ ---
     init_vga();
-    
-    // 1. Заливаем фон темно-синим (или черным)
-    clear_screen_vga(1); // 1 = Blue
-    
-    // ТЕСТ: Рисуем цветные полосы для проверки работы VGA
-    for (int i = 0; i < 320; i++) {
-        for (int j = 0; j < 20; j++) {
-            put_pixel(i, j, 15); // Белая полоса сверху
-        }
-    }
-    for (int i = 0; i < 320; i++) {
-        for (int j = 20; j < 40; j++) {
-            put_pixel(i, j, 4); // Красная полоса
-        }
-    }
-    
-    // 2. Рисуем "Окно" по центру (стиль Win7 Basic)
-    // x=60, y=50, ширина=200, высота=100
-    draw_rect(60, 50, 200, 100, 7);
-    draw_rect(60, 50, 200, 15, 9);
-    
-    // ТЕКСТ (Цвет 15 - Белый)
-    draw_string(70, 54, "EquinoxOS Setup", 15);
-    draw_string(70, 80, "Installing drivers...", 15); // Изменено на белый для видимости
+    clear_screen_vga(COLOR_BLUE); // Залей синим для контраста
+    draw_string("EquinoxOS Graphic Mode", 10, 10, COLOR_WHITE, COLOR_BLUE);
+    draw_string("Testing font8x8... OK!", 10, 25, COLOR_GREEN, COLOR_BLUE);
 
-    while(1) { __asm__ __volatile__("hlt"); }
+    // Бесконечный цикл, чтобы процессор не сгорал
+    // Твой while(1) {} надо заменить на это:
+    while(1) { 
+        __asm__ __volatile__("hlt"); 
+    }
 }
