@@ -9,12 +9,8 @@
 #include "drivers/disk/ata.h"
 #include "../fs/fs.h"
 #include "drivers/vga/vesa.h"
-
-// Глобальные координаты (объявлены здесь, используются везде через extern)
 int current_col = 0;
 int current_row = 0;
-
-// Буфер для ввода команд
 char key_buffer[256];
 int buffer_idx = 0;
 
@@ -23,7 +19,6 @@ void keyboard_callback() {
     char c = get_ascii_char(scancode);
     
     if (c != 0) {
-        // Стирание символа
         if (c == '\b') {
             if (buffer_idx > 0) {
                 buffer_idx--;
@@ -33,11 +28,10 @@ void keyboard_callback() {
                 if (current_col < 0) current_col = 0;
                 
                 kprint_at(" ", current_col, current_row);
-                current_col--; // Корректируем после kprint_at
+                current_col--;
                 update_cursor(current_col, current_row);
             }
         } 
-        // Выполнение команды
         else if (c == '\n') {
             key_buffer[buffer_idx] = '\0';
             kprint("\n");
@@ -47,7 +41,6 @@ void keyboard_callback() {
             buffer_idx = 0;
             kprint("> ");
         } 
-        // Набор текста
         else {
             if (buffer_idx < 255) {
                 key_buffer[buffer_idx++] = c;
@@ -61,17 +54,11 @@ void keyboard_callback() {
 void kmain(uint32_t fb_addr) {
     init_gdt();
     init_vesa(fb_addr);
-
-    // 1. Фон
     draw_background(); 
-
-    // 2. Стеклянное окно
     draw_transparent_rect(100, 100, 600, 400, 0xFFFFFF, 150);
     draw_rect(100, 100, 600, 30, 0x0055AA);
-
-    // 3. Текст
-    vesa_draw_string("EquinoxOS - Back to Stability", 110, 110, 0xFFFFFF);
-    vesa_draw_string("Kernel is alive. No heavy assets loaded.", 120, 150, 0x000000);
+    vesa_draw_string("EquinoxOS - reverted", 110, 110, 0xFFFFFF);
+    vesa_draw_string("image importing failed", 120, 150, 0x000000);
 
     while(1) { __asm__ __volatile__("hlt"); }
 }
