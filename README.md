@@ -15,3 +15,5 @@
 - **Emulator:** QEMU
 
 Made with help of AI.
+
+-# Unfinished. Do with it anything you want. Im too bad at C.
