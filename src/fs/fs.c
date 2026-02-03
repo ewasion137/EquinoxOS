@@ -6,7 +6,7 @@
 // Читаем оглавление с 1-го сектора
 void list_files() {
     file_entry_t* dir = (file_entry_t*)kmalloc(512);
-    read_sectors_ata_pio((uint32_t)dir, 1, 1); // Читаем 1-й сектор
+    read_sectors_ata_pio((uint64_t)dir, 1, 1); // Читаем 1-й сектор
 
     kprint("Files on disk:\n");
     int found = 0;
@@ -21,7 +21,7 @@ void list_files() {
 
 void create_file(char* name, char* content) {
     file_entry_t* dir = (file_entry_t*)kmalloc(512);
-    read_sectors_ata_pio((uint32_t)dir, 1, 1);
+    read_sectors_ata_pio((uint64_t)dir, 1, 1);
 
     // Ищем свободный слот в оглавлении
     for (int i = 0; i < MAX_FILES; i++) {

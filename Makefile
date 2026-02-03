@@ -1,86 +1,59 @@
-# makefile
-
+CC = x86_64-elf-gcc   # Сменил
+LD = x86_64-elf-ld    # Сменил
 ASM = nasm
-CC = gcc
-LD = ld
-OBJCOPY = objcopy
-EMU = qemu-system-x86_64
+OBJCOPY = x86_64-elf-objcopy # Сменил
 
-# Добавили shell.o в список объектов
-OBJ = kernel_entry.o kernel.o io.o screen.o keyboard.o gdt.o gdt_flush.o idt.o interrupt.o pic.o shell.o timer.o ata.o memory.o fs.o vesa.o
+CFLAGS = -ffreestanding -O2 -Wall -Wextra -fno-exceptions -std=c11 -Isrc -Isrc/drivers -Isrc/shell -Isrc/boot/limine -mcmodel=large
+LDFLAGS = -nostdlib -T src/linker.ld -z max-page-size=0x1000
+ASMFLAGS = -f elf64
 
-# Добавили путь к папке shell в инклюды
-CFLAGS = -ffreestanding -m32 -fno-pie -fno-stack-protector -fno-leading-underscore -Isrc -Isrc/drivers -Isrc/shell
+OBJ_DIR = obj
+OBJ = $(OBJ_DIR)/kernel.o $(OBJ_DIR)/io.o $(OBJ_DIR)/screen.o $(OBJ_DIR)/keyboard.o \
+      $(OBJ_DIR)/shell.o $(OBJ_DIR)/gdt.o $(OBJ_DIR)/gdt_flush.o $(OBJ_DIR)/idt.o \
+      $(OBJ_DIR)/pic.o $(OBJ_DIR)/interrupt.o $(OBJ_DIR)/timer.o $(OBJ_DIR)/ata.o \
+      $(OBJ_DIR)/memory.o $(OBJ_DIR)/fs.o $(OBJ_DIR)/vesa.o
 
-all: os-image.bin run
+all: setup kernel.elf
 
-# 1. Загрузчик
-boot.bin: src/boot/boot.asm
-	$(ASM) -f bin src/boot/boot.asm -o boot.bin
+setup:
+	@if not exist $(OBJ_DIR) mkdir $(OBJ_DIR)
 
-# 2. Точка входа в ядро
-kernel_entry.o: src/boot/kernel_entry.asm
-	$(ASM) -f elf32 src/boot/kernel_entry.asm -o kernel_entry.o
+kernel.elf: $(OBJ)
+	$(LD) $(LDFLAGS) $(OBJ) -o kernel.elf
 
-# 3. Основное ядро
-kernel.o: src/kernel.c
-	$(CC) $(CFLAGS) -c src/kernel.c -o kernel.o
+$(OBJ_DIR)/%.o: src/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-# 4. Драйверы и системные модули
-io.o: src/io/io.c
-	$(CC) $(CFLAGS) -c src/io/io.c -o io.o
+$(OBJ_DIR)/%.o: src/system/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-screen.o: src/drivers/screen/screen.c
-	$(CC) $(CFLAGS) -c src/drivers/screen/screen.c -o screen.o
+$(OBJ_DIR)/%.o: src/drivers/screen/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-keyboard.o: src/drivers/keyboard/keyboard.c
-	$(CC) $(CFLAGS) -c src/drivers/keyboard/keyboard.c -o keyboard.o
+$(OBJ_DIR)/%.o: src/drivers/keyboard/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-# --- НОВОЕ: Менеджер команд (Shell) ---
-shell.o: src/shell/shell.c
-	$(CC) $(CFLAGS) -c src/shell/shell.c -o shell.o
+$(OBJ_DIR)/%.o: src/shell/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-gdt.o: src/system/gdt.c
-	$(CC) $(CFLAGS) -c src/system/gdt.c -o gdt.o
+$(OBJ_DIR)/%.o: src/drivers/disk/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-gdt_flush.o: src/system/gdt_flush.asm
-	$(ASM) -f elf32 src/system/gdt_flush.asm -o gdt_flush.o
+$(OBJ_DIR)/%.o: src/fs/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-idt.o: src/system/idt.c
-	$(CC) $(CFLAGS) -c src/system/idt.c -o idt.o
+$(OBJ_DIR)/%.o: src/drivers/vga/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-pic.o: src/system/pic.c
-	$(CC) $(CFLAGS) -c src/system/pic.c -o pic.o
+$(OBJ_DIR)/%.o: src/io/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-interrupt.o: src/system/interrupt.asm
-	$(ASM) -f elf32 src/system/interrupt.asm -o interrupt.o
+$(OBJ_DIR)/gdt_flush.o: src/system/gdt_flush.asm
+	$(ASM) $(ASMFLAGS) $< -o $@
 
-timer.o: src/system/timer.c
-	$(CC) $(CFLAGS) -c src/system/timer.c -o timer.o
-
-ata.o: src/drivers/disk/ata.c
-	$(CC) $(CFLAGS) -c src/drivers/disk/ata.c -o ata.o
-
-memory.o: src/system/memory.c
-	$(CC) $(CFLAGS) -c src/system/memory.c -o memory.o
-
-fs.o: src/fs/fs.c
-	$(CC) $(CFLAGS) -c src/fs/fs.c -o fs.o
-
-vesa.o: src/drivers/vga/vesa.c
-	$(CC) $(CFLAGS) -c src/drivers/vga/vesa.c -o vesa.o
-
-# 5. Линковка (kernel_entry.o ВСЕГДА ПЕРВЫЙ!)
-kernel.bin: $(OBJ)
-	$(LD) -m i386pe --image-base 0 -T src/linker.ld $(OBJ) -o kernel.tmp
-	$(OBJCOPY) -O binary kernel.tmp kernel.bin
-
-# 6. Склейка образа
-os-image.bin: boot.bin kernel.bin
-	copy /b boot.bin + kernel.bin os-image.bin
-
-run:
-	$(EMU) -drive format=raw,file=os-image.bin,index=0,media=disk -drive format=raw,file=fs.img,index=1,media=disk
+$(OBJ_DIR)/interrupt.o: src/system/interrupt.asm
+	$(ASM) $(ASMFLAGS) $< -o $@
 
 clean:
-	del *.bin *.o *.tmp
+	@if exist $(OBJ_DIR) rmdir /s /q $(OBJ_DIR)
+	@if exist kernel.elf del kernel.elf

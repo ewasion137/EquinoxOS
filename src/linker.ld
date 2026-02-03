@@ -1,32 +1,15 @@
-/* linker ld */
-
 ENTRY(kmain)
 
-SECTIONS
-{
-    . = 0x1000;
+SECTIONS {
+    . = 0xffffffff80100000;  /* <-- САМОЕ ВАЖНОЕ ИЗМЕНЕНИЕ */
 
-    /* Сливаем всё в одну секцию text, чтобы ничего не потерялось */
-    .text : ALIGN(4K)
-    {
+    .text : {
+        /* Тут твои .text и .multiboot_header (если ты его еще используешь) */
         *(.text)
-        *(.text.*)
-        *(.rodata)
-        *(.rodata*)
-        *(.rdata)
-        *(.rdata*)
     }
 
-    .data : ALIGN(4K)
-    {
-        *(.data)
-        *(.data.*)
-    }
-
-    .bss : ALIGN(4K)
-    {
-        *(.COMMON)
-        *(.bss)
-        *(.bss.*)
-    }
+    /* Остальные секции */
+    .data ALIGN(0x1000) : { *(.data) }
+    .rodata ALIGN(0x1000) : { *(.rodata) }
+    .bss ALIGN(0x1000) : { *(.bss) }
 }

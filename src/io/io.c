@@ -3,20 +3,20 @@
 
 unsigned char inb(unsigned short port) {
     unsigned char ret;
-    asm volatile ("inb %1, %0" : "=a"(ret) : "Nd"(port));
+    __asm__ __volatile__ ("inb %1, %0" : "=a"(ret) : "Nd"(port));
     return ret;
 }
 
 void outb(unsigned short port, unsigned char val) {
-    asm volatile ("outb %0, %1" : : "a"(val), "Nd"(port));
+    __asm__ __volatile__ ("outb %0, %1" : : "a"(val), "Nd"(port));
 }
 
 uint16_t inw(uint16_t port) {
     uint16_t ret;
-    asm volatile ("inw %1, %0" : "=a"(ret) : "Nd"(port));
+    __asm__ __volatile__ ("inw %1, %0" : "=a"(ret) : "Nd"(port));
     return ret;
 }
 
 void outw(unsigned short port, uint16_t val) {
-    asm volatile ("outw %0, %1" : : "a"(val), "Nd"(port));
+    __asm__ __volatile__ ("outw %0, %1" : : "a"(val), "Nd"(port));
 }

@@ -18,7 +18,7 @@ typedef struct gdt_entry_struct gdt_entry_t;
 // Структура указателя на GDT (то, что съест процессор)
 struct gdt_ptr_struct {
     uint16_t limit;               // Размер таблицы
-    uint32_t base;                // Адрес начала таблицы
+    uint64_t base;                // Адрес начала таблицы
 } __attribute__((packed));
 
 typedef struct gdt_ptr_struct gdt_ptr_t;

@@ -6,7 +6,7 @@ uint32_t* backbuffer;     // Черновик для текущего кадра
 int screen_width = 800;
 int screen_height = 600;
 
-void init_vesa(uint32_t fb_addr) {
+void init_vesa(uint64_t fb_addr) {
     framebuffer = (uint32_t*)fb_addr;
     backbuffer = (uint32_t*)0x2000000;
 }
@@ -14,9 +14,6 @@ void init_vesa(uint32_t fb_addr) {
 // Теперь цвет - это 0xRRGGBB
 void put_pixel(int x, int y, uint32_t color) {
     if (x < 0 || x >= 800 || y < 0 || y >= 600) return;
-    
-    // Попробуй использовать явный расчет смещения
-    // Если картинка все равно "полосит", попробуй заменить 800 на 1024 (иногда QEMU так ровняет)
     framebuffer[y * 800 + x] = color;
 }
 // Рисуем градиент (первый шаг к Frutiger Aero!)

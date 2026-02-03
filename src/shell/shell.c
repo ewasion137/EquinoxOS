@@ -25,8 +25,8 @@ void str_copy(char* dest, char* src) {
 }
 
 // Функции звука
-void play_sound(uint32_t nFrequence) {
-    uint32_t Div;
+void play_sound(uint64_t nFrequence) {
+    uint64_t Div;
     uint8_t tmp;
     Div = 1193180 / nFrequence;
     outb(0x43, 0xB6);
@@ -113,9 +113,9 @@ void shell_beep() {
 }
 
 void shell_uptime() {
-    uint32_t total_seconds = tick / 100;
-    uint32_t minutes = total_seconds / 60;
-    uint32_t seconds = total_seconds % 60;
+    uint64_t total_seconds = tick / 100;
+    uint64_t minutes = total_seconds / 60;
+    uint64_t seconds = total_seconds % 60;
 
     kprintf("System Uptime: %d min, %d sec (Total ticks: %d)\n", minutes, seconds, tick);
 }
@@ -141,7 +141,7 @@ void shell_load() {
     
     for(int i=0; i<512; i++) buffer[i] = 0; // Чистим буфер заранее
 
-    read_sectors_ata_pio((uint32_t)buffer, 100, 1);
+    read_sectors_ata_pio((uint64_t)buffer, 100, 1);
     
     buffer[512] = '\0'; // Гарантируем конец строки
 
@@ -154,13 +154,13 @@ void shell_load() {
 
 void read_file(char* name) {
     file_entry_t* dir = (file_entry_t*)kmalloc(512);
-    read_sectors_ata_pio((uint32_t)dir, 1, 1);
+    read_sectors_ata_pio((uint64_t)dir, 1, 1);
 
     for (int i = 0; i < MAX_FILES; i++) {
         // Сравниваем имя (используй свою функцию сравнения строк)
         if (str_compare(dir[i].name, name) == 0) {
             char* buffer = (char*)kmalloc(512);
-            read_sectors_ata_pio((uint32_t)buffer, dir[i].start_lba, 1);
+            read_sectors_ata_pio((uint64_t)buffer, dir[i].start_lba, 1);
             kprintf("File content: %s\n", buffer);
             return;
         }

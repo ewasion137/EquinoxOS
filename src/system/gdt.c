@@ -20,7 +20,7 @@ static void gdt_set_gate(int32_t num, uint32_t base, uint32_t limit, uint8_t acc
 
 void init_gdt() {
     gdt_ptr.limit = (sizeof(gdt_entry_t) * 5) - 1;
-    gdt_ptr.base  = (uint32_t)&gdt_entries;
+    gdt_ptr.base  = (uint64_t)&gdt_entries;
 
     gdt_set_gate(0, 0, 0, 0, 0);                // Null segment
     gdt_set_gate(1, 0, 0xFFFFFFFF, 0x9A, 0xCF); // Code segment
@@ -28,5 +28,5 @@ void init_gdt() {
     gdt_set_gate(3, 0, 0xFFFFFFFF, 0xFA, 0xCF); // User mode code
     gdt_set_gate(4, 0, 0xFFFFFFFF, 0xF2, 0xCF); // User mode data
 
-    gdt_flush((uint32_t)&gdt_ptr);
+    gdt_flush((uint64_t)&gdt_ptr);
 }

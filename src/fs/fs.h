@@ -7,9 +7,9 @@
 
 typedef struct {
     char name[20];
-    uint32_t size;
-    uint32_t start_lba;
-    uint32_t unused;
+    uint64_t size;
+    uint64_t start_lba;
+    uint64_t unused;
 } __attribute__((packed)) file_entry_t;
 
 void init_fs();
