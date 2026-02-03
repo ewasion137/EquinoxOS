@@ -17,6 +17,8 @@
 #define COLOR_GREY        0xCCCCCC
 #define COLOR_DARK_GREY   0x333333
 
+uint64_t screen_pitch; 
+
 // Прототипы функций
 void init_vesa(uint64_t fb_addr);
 void put_pixel(int x, int y, uint64_t color);

@@ -1,14 +1,14 @@
 #include <stdint.h>
 #include "font8x8.h"
 
-uint32_t* framebuffer;    // Реальная видеопамять (0xA0000000...)
-uint32_t* backbuffer;     // Черновик для текущего кадра
+uint64_t* framebuffer;    // Реальная видеопамять (0xA0000000...)
+uint64_t* backbuffer;     // Черновик для текущего кадра
 int screen_width = 800;
 int screen_height = 600;
 
 void init_vesa(uint64_t fb_addr) {
-    framebuffer = (uint32_t*)fb_addr;
-    backbuffer = (uint32_t*)0x2000000;
+    framebuffer = (uint64_t*)fb_addr;
+    backbuffer = (uint64_t*)0x2000000;
 }
 
 // Теперь цвет - это 0xRRGGBB

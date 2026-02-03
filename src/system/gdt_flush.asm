@@ -2,30 +2,21 @@
 [bits 64]
 global gdt_flush
 
-; gdt_flush вызывается из C, аргумент GDT_PTR в RDI
 gdt_flush:
-    lgdt [rdi]        
+    lgdt [rdi]        ; RDI - это адрес gdt_ptr
 
-    ; Обнуляем сегментные регистры (обязательно в x64 Long Mode)
+    ; Обнуляем сегментные регистры (MOV SS, 0 - запрещен)
     mov ax, 0
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
-    mov ss, ax
+    mov ss, ax        ; Оставляем как есть, но знаем, что это может быть проблемой
 
-    ; 64-битный Far Jump:
-    ; Сначала кладем 64-битный адрес, куда прыгать, потом 16-битный селектор
-    
-    ; 1. Кладем адрес возврата (64-бит)
-    lea rax, [ret_after_far_jump] 
-    push rax
-    
-    ; 2. Кладем селектор кода (16-бит)
-    push 0x08 
-
-    ; 3. Выполняем 64-битный Far Return (аналог Far Jump в Long Mode)
+    ; 64-битный Far Jump
+    push 0x08         ; Селектор кода (GDT entry 1)
+    push ret_after_far_jump
     lretq
-    
+
 ret_after_far_jump:
     ret

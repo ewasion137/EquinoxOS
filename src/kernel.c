@@ -1,7 +1,6 @@
 #include "io/io.h"
 #include "drivers/screen/screen.h"
 #include "drivers/keyboard/keyboard.h"
-#include "system/gdt.h"
 #include "system/idt.h"
 #include "system/pic.h"
 #include "shell/shell.h"
@@ -77,9 +76,8 @@ void kmain(void) {
     struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];
     uint64_t fb_addr = (uint64_t)fb->address;
 
-    init_gdt();
     init_vesa(fb_addr);
-
+    // init_idt();
     // Твой старый код отрисовки
     draw_background(); 
     draw_transparent_rect(100, 100, 600, 400, 0xFFFFFF, 150);

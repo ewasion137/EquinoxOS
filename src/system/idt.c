@@ -24,8 +24,8 @@ void init_idt() {
     for (int i = 0; i < 256; i++) set_idt_gate(i, (uint64_t)isr_stub);
 
     // РЕГИСТРИРУЕМ КЛАВИАТУРУ (IRQ1 = 32 + 1 = 33)
-    set_idt_gate(33, (uint32_t)keyboard_handler);
-    set_idt_gate(32, (uint32_t)timer_handler);
+    set_idt_gate(33, (uint64_t)keyboard_handler);
+    set_idt_gate(32, (uint64_t)timer_handler);
 
     __asm__ __volatile__("lidt (%0)" : : "r" (&idt_reg));
     __asm__ __volatile__("sti");
