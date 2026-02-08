@@ -24,3 +24,5 @@ if it doesnt work:
 xorriso -as mkisofs -b limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-info-table -o equos.iso iso_root
 
 Made with help of AI.
+
+Trying to finish it.
