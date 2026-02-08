@@ -8,7 +8,7 @@
 - VGA Screen Driver with Hardware Cursor
 - Keyboard Driver (ASCII, Shift support)
 
-## Tech Stack:
+## Stack:
 - **Language:** C, x86 Assembly
 - **Compiler:** GCC (MinGW-w64), i686, x86_64-elf
 - **Assembler:** NASM

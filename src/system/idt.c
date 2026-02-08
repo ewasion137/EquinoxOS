@@ -6,6 +6,7 @@ idt_register_t idt_reg;
 extern void keyboard_handler(); // Наш новый спец-обработчик из асма
 extern void isr_stub();         // Общая заглушка для остальных
 extern void timer_handler();
+extern void mouse_handler();
 
 void set_idt_gate(int n, uint64_t handler) {
     idt[n].low_offset = (uint16_t)(handler & 0xFFFF);
@@ -23,10 +24,13 @@ void init_idt() {
 
     for (int i = 0; i < 256; i++) set_idt_gate(i, (uint64_t)isr_stub);
 
-    // РЕГИСТРИРУЕМ КЛАВИАТУРУ (IRQ1 = 32 + 1 = 33)
-    set_idt_gate(33, (uint64_t)keyboard_handler);
+    // РЕГИСТРИРУЕМ ТАЙМЕР (IRQ0 = 32)
     set_idt_gate(32, (uint64_t)timer_handler);
+    // РЕГИСТРИРУЕМ КЛАВИАТУРУ (IRQ1 = 33)
+    set_idt_gate(33, (uint64_t)keyboard_handler);
+    // РЕГИСТРИРУЕМ МЫШЬ (IRQ12 = 32 + 12 = 44)
+    set_idt_gate(44, (uint64_t)mouse_handler); // <-- ДОБАВЬ ЭТУ СТРОКУ
 
     __asm__ __volatile__("lidt (%0)" : : "r" (&idt_reg));
-    __asm__ __volatile__("sti");
+    __asm__ __volatile__("sti"); // Включаем прерывания
 }

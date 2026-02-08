@@ -1,89 +1,96 @@
-#include "io/io.h"
-#include "drivers/screen/screen.h"
-#include "drivers/keyboard/keyboard.h"
-#include "system/idt.h"
-#include "system/pic.h"
-#include "shell/shell.h"
-#include "../system/timer.h"
-#include "drivers/disk/ata.h"
-#include "../fs/fs.h"
+// kernel.c
 #include "drivers/vga/vesa.h"
 #include "boot/limine/limine.h"
 #include <stdint.h>
 #include <stddef.h>
+// #include "system/pic.h"        // <-- ДОБАВЬ ЭТО
+#include "system/idt.h"
+#include "drivers/mouse/mouse.h"
 
+// Запрос к загрузчику. Limine сам заполнит эту структуру.
 static volatile struct limine_framebuffer_request framebuffer_request = {
-    .id = LIMINE_FRAMEBUFFER_REQUEST_ID, // Тот самый ID из хедера
+    .id = LIMINE_FRAMEBUFFER_REQUEST_ID,
     .revision = 0
 };
 
-// Глобальные координаты (объявлены здесь, используются везде через extern)
-int current_col = 0;
-int current_row = 0;
-
-// Буфер для ввода команд
-char key_buffer[256];
-int buffer_idx = 0;
-
 void keyboard_callback() {
-    unsigned char scancode = inb(0x60);
-    char c = get_ascii_char(scancode);
-    
-    if (c != 0) {
-        // Стирание символа
-        if (c == '\b') {
-            if (buffer_idx > 0) {
-                buffer_idx--;
-                key_buffer[buffer_idx] = '\0';
-                
-                current_col--;
-                if (current_col < 0) current_col = 0;
-                
-                kprint_at(" ", current_col, current_row);
-                current_col--; // Корректируем после kprint_at
-                update_cursor(current_col, current_row);
-            }
-        } 
-        // Выполнение команды
-        else if (c == '\n') {
-            key_buffer[buffer_idx] = '\0';
-            kprint("\n");
-            
-            execute_command(key_buffer);
-            
-            buffer_idx = 0;
-            kprint("> ");
-        } 
-        // Набор текста
-        else {
-            if (buffer_idx < 255) {
-                key_buffer[buffer_idx++] = c;
-                char str[2] = {c, 0};
-                kprint(str);
-            }
-        }
-    }
+    // Пока просто пустая функция, чтобы не падало
+    // Когда починим экран, вернем сюда рисование символов через vesa_draw_char
 }
 
 void kmain(void) {
-    // Проверяем, дал ли нам загрузчик ответ по экрану
+    // 1. Проверяем, что загрузчик ответил
     if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
-        // Если экрана нет — зависаем (на реальном железе можно мигнуть диодом)
-        while(1);
+        // Если экрана нет — стоим насмерть
+        while(1) { __asm__ __volatile__("hlt"); }
     }
 
-    // Получаем адрес экрана из ответа Limine
-    struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];
-    uint64_t fb_addr = (uint64_t)fb->address;
 
-    init_vesa(fb_addr);
-    // init_idt();
-    // Твой старый код отрисовки
+    struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];
+    init_vesa((uint64_t)fb->address, (uint32_t)fb->width, (uint32_t)fb->height, (uint32_t)fb->pitch);
+
+    // --- ПРАВИЛЬНЫЙ ПОРЯДОК ИНИЦИАЛИЗАЦИИ ---
+    // pic_remap(); // <-- ВЫЗЫВАЙ ПЕРЕД IDT
+    init_idt();  // Инициализирует IDT и включает прерывания STI
+    init_mouse(); // Инициализирует PS/2 контроллер мыши
+
+    // 3. Передаем адрес, ширину, высоту и pitch в драйвер VESA
+    // Саму переменную framebuffer мы тут не храним, она спрятана внутри init_vesa
+    init_vesa((uint64_t)fb->address, (uint32_t)fb->width, (uint32_t)fb->height, (uint32_t)fb->pitch);
+
+    // 4. Рисуем
     draw_background(); 
+    
+    // Окно
     draw_transparent_rect(100, 100, 600, 400, 0xFFFFFF, 150);
     draw_rect(100, 100, 600, 30, 0x0055AA);
-    vesa_draw_string("EquinoxOS - Limine Power", 110, 110, 0xFFFFFF);
-    vesa_draw_string("Booted via Limine. BIOS legacy discarded.", 120, 150, 0x000000);
+    
+    vesa_draw_string("EquinoxOS - Graphics Works!", 110, 110, 0xFFFFFF);
+    vesa_draw_string("No more stripes please...", 120, 150, 0x000000);
 
-    while(1) { __asm__ __volatile__("hlt"); }
+    volatile int32_t old_mouse_x = 0; // <-- ОБЯЗАТЕЛЬНО volatile
+    volatile int32_t old_mouse_y = 0; // <-- ОБЯЗАТЕЛЬНО volatile
+
+    // Буфер для сохранения фона под курсором (16x16 пикселей)
+    uint32_t bg_buffer[16 * 16];
+
+    while(1) {
+        // 1. Восстанавливаем фон там, где курсор был в прошлом кадре
+        // Проверка на корректность координат
+        if (old_mouse_x >= 0 && old_mouse_x < (int32_t)screen_width &&
+            old_mouse_y >= 0 && old_mouse_y < (int32_t)screen_height) {
+            for (int y = 0; y < 16; y++) {
+                for (int x = 0; x < 16; x++) {
+                    put_pixel(old_mouse_x + x, old_mouse_y + y, bg_buffer[y * 16 + x]);
+                }
+            }
+        }
+        
+        // 2. Сохраняем фон там, где курсор будет в этом кадре
+        // Проверка на корректность координат
+        if (mouse_x >= 0 && mouse_x < (int32_t)screen_width &&
+            mouse_y >= 0 && mouse_y < (int32_t)screen_height) {
+            for (int y = 0; y < 16; y++) {
+                for (int x = 0; x < 16; x++) {
+                    uint32_t* pixel_ptr = (uint32_t*)(fb_base_addr + ((mouse_y + y) * screen_pitch) + ((mouse_x + x) * 4));
+                    // Проверка, что мы не читаем за пределами экрана
+                    if ((mouse_x + x) < (int32_t)screen_width && (mouse_y + y) < (int32_t)screen_height) {
+                        bg_buffer[y * 16 + x] = *pixel_ptr;
+                    }
+                }
+            }
+        }
+        
+        // 3. Рисуем сам курсор (простой белый квадрат 10x10)
+        draw_rect(mouse_x, mouse_y, 10, 10, 0xFFFFFF);
+        if (mouse_left_button) { 
+             draw_rect(mouse_x, mouse_y, 10, 10, 0xFF0000);
+        }
+
+        // 4. Обновляем старые координаты
+        old_mouse_x = mouse_x;
+        old_mouse_y = mouse_y;
+
+        __asm__ __volatile__("hlt");
+    }
 }

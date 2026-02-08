@@ -3,8 +3,10 @@
 [global isr_stub]
 [global keyboard_handler]
 [global timer_handler]
+[global mouse_handler] 
 [extern timer_callback]
 [extern keyboard_callback]
+[extern mouse_callback]
 
 %macro SAVE_REGS 0
     push rax
@@ -60,5 +62,17 @@ timer_handler:
     call timer_callback
     mov al, 0x20
     out 0x20, al
+    RESTORE_REGS
+    iretq
+
+mouse_handler:
+    SAVE_REGS
+    call mouse_callback     ; Вызываем C-функцию из mouse.c
+
+    ; EOI - Конец прерывания. ВАЖНО: для мыши нужно два EOI!
+    mov al, 0x20
+    out 0xA0, al            ; Сначала посылаем EOI на SLAVE PIC (порт 0xA0)
+    out 0x20, al            ; Затем на MASTER PIC (порт 0x20)
+
     RESTORE_REGS
     iretq
