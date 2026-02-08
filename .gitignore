@@ -1,0 +1,8 @@
+kernel.elf
+limine.exe
+limine-bios-cd.bin
+obj/
+*.o
+.vscode/
+*.swp
+*~
