@@ -10,11 +10,11 @@ extern void mouse_handler();
 
 void set_idt_gate(int n, uint64_t handler) {
     idt[n].low_offset = (uint16_t)(handler & 0xFFFF);
-    idt[n].sel = 0x08;
-    idt[n].always0 = 0;
-    idt[n].flags = 0x8E;
-    idt[n].high_offset = (uint16_t)((handler >> 16) & 0xFFFF);
-    idt[n].very_high_offset = (uint32_t)(handler >> 32); 
+    idt[n].sel = 0x28; // <-- ЭТО МЫ ЕЩЕ ИСПРАВИМ НИЖЕ
+    idt[n].ist = 0;    // Без использования Interrupt Stack Table
+    idt[n].flags = 0x8E; // P=1, DPL=00, S=0, Type=1110 (Interrupt Gate)
+    idt[n].mid_offset = (uint16_t)((handler >> 16) & 0xFFFF);
+    idt[n].high_offset = (uint32_t)(handler >> 32); 
     idt[n].reserved = 0;
 }
 
@@ -32,5 +32,4 @@ void init_idt() {
     set_idt_gate(44, (uint64_t)mouse_handler); // <-- ДОБАВЬ ЭТУ СТРОКУ
 
     __asm__ __volatile__("lidt (%0)" : : "r" (&idt_reg));
-    __asm__ __volatile__("sti"); // Включаем прерывания
 }

@@ -58,6 +58,7 @@ void mouse_flush_buffer() {
 
 // Это наш обработчик прерывания (Interrupt Handler)
 void mouse_callback() {
+    draw_rect(0, 0, 50, 50, 0xFF0000); 
     uint8_t status = inb(PS2_CMD_PORT);
     // Проверяем, что данные пришли именно от мыши (Auxiliary Device Output Buffer Full - бит 5)
     if (!(status & 0x20)) return;
@@ -107,55 +108,70 @@ void mouse_callback() {
     }
 }
 
-void init_mouse() {
-    mouse_flush_buffer(); // Очищаем буфер данных PS/2 от мусора
+// src/drivers/mouse/mouse.c
+// ... (весь код до init_mouse) ...
 
-    // 1. Отключаем мышь (Disable Auxiliary Device)
-    mouse_wait_input();
-    outb(PS2_CMD_PORT, 0xA7); 
+void init_mouse() {
+    int y_debug_offset = 180; // Начальная Y-координата для вывода дебага
+    
+    mouse_flush_buffer(); 
+    vesa_draw_string("Mouse Init: Flushed buffer.", 120, y_debug_offset, 0xFFFFFF); y_debug_offset += 12;
+
+    // 1. Отключаем мышь
+    mouse_wait_input(); outb(PS2_CMD_PORT, 0xA7); 
+    vesa_draw_string("Mouse Init: Disabled aux device (0xA7).", 120, y_debug_offset, 0xFFFFFF); y_debug_offset += 12;
 
     // 2. Читаем Controller Command Byte (CCB)
-    mouse_wait_input();
-    outb(PS2_CMD_PORT, 0x20); // Команда "прочитать CCB"
-    mouse_wait_output();
-    uint8_t ccb = inb(PS2_DATA_PORT);
+    mouse_wait_input(); outb(PS2_CMD_PORT, 0x20); // Команда "прочитать CCB"
+    uint8_t ccb = mouse_read();
+    vesa_draw_string_hex("Mouse Init: CCB before: 0x", 120, y_debug_offset, ccb, 0xFFFFFF); y_debug_offset += 12;
 
     // 3. Изменяем CCB: Включаем IRQ12 (бит 1), Включаем часы мыши (бит 5)
-    ccb |= 0x02; // Включаем IRQ12
+    ccb |= 0x02;  // Включаем IRQ12
     ccb &= ~0x20; // Очищаем бит 5 (т.е. включаем часы мыши)
-    // Опционально: ccb |= 0x40; // Включить PS/2 "Translation" (не всегда нужно)
-
+    // НЕ включаем translation (бит 6), пока не убедимся, что все остальное работает
+    
     // 4. Записываем измененный CCB
-    mouse_wait_input();
-    outb(PS2_CMD_PORT, 0x60); // Команда "записать CCB"
-    mouse_wait_input();
-    outb(PS2_DATA_PORT, ccb);
+    mouse_wait_input(); outb(PS2_CMD_PORT, 0x60); // Команда "записать CCB"
+    mouse_wait_input(); outb(PS2_DATA_PORT, ccb);
+    vesa_draw_string_hex("Mouse Init: CCB after:  0x", 120, y_debug_offset, ccb, 0xFFFFFF); y_debug_offset += 12;
 
     // 5. Включаем мышь (Enable Auxiliary Device)
-    mouse_wait_input();
-    outb(PS2_CMD_PORT, 0xA8);
+    mouse_wait_input(); outb(PS2_CMD_PORT, 0xA8);
+    vesa_draw_string("Mouse Init: Enabled aux device (0xA8).", 120, y_debug_offset, 0xFFFFFF); y_debug_offset += 12;
 
-    // 6. Проверка PS/2 контроллера
-    mouse_wait_input();
-    outb(PS2_CMD_PORT, 0xAA); // Команда "Self-Test" (Должен вернуть 0x55)
-    mouse_read(); // Читаем ответ, должен быть 0x55
+    // 6. Проверка PS/2 контроллера (Self-Test)
+    mouse_wait_input(); outb(PS2_CMD_PORT, 0xAA); // Команда "Self-Test" (Должен вернуть 0x55)
+    uint8_t self_test_response = mouse_read(); 
+    vesa_draw_string_hex("Mouse Init: Self-Test (0xAA) response: 0x", 120, y_debug_offset, self_test_response, 0xFFFFFF); y_debug_offset += 12;
+    // Если self_test_response НЕ 0x55, это ОГРОМНАЯ ПРОБЛЕМА С КОНТРОЛЛЕРОМ!
 
-    mouse_wait_input();
-    outb(PS2_CMD_PORT, 0xAE); // Enable PS/2 auxiliary device port
+    // 7. Активируем порт для мыши
+    mouse_wait_input(); outb(PS2_CMD_PORT, 0xAE); // Enable PS/2 auxiliary device port
+    vesa_draw_string("Mouse Init: Enabled aux port (0xAE).", 120, y_debug_offset, 0xFFFFFF); y_debug_offset += 12;
 
-    // 7. Сброс мыши и установка режима
+    // 8. Сброс мыши и установка режима
     mouse_write(0xFF); // Reset mouse
-    mouse_read();      // Ожидаем ACK (0xFA)
-    mouse_read();      // Ожидаем ID (0xAA)
+    uint8_t ack_reset = mouse_read(); // Ожидаем ACK (0xFA)
+    uint8_t id_reset = mouse_read();  // Ожидаем ID (0xAA)
+    vesa_draw_string_hex("Mouse Init: Reset (0xFF) ACK: 0x", 120, y_debug_offset, ack_reset, 0xFFFFFF); y_debug_offset += 12;
+    vesa_draw_string_hex("Mouse Init: Reset (0xFF) ID:  0x", 120, y_debug_offset, id_reset, 0xFFFFFF); y_debug_offset += 12;
+    // Оба должны быть 0xFA и 0xAA соответственно. Если нет - мышь не отвечает.
 
-    mouse_write(0xF6); // Set defaults (установить настройки по умолчанию)
-    mouse_read();      // Ожидаем ACK (0xFA)
+    mouse_write(0xF6); // Set defaults
+    uint8_t ack_defaults = mouse_read();
+    vesa_draw_string_hex("Mouse Init: Set defaults (0xF6) ACK: 0x", 120, y_debug_offset, ack_defaults, 0xFFFFFF); y_debug_offset += 12;
 
-    mouse_write(0xF3); // Set sample rate (установить частоту сэмплирования)
-    mouse_read();      // Ожидаем ACK (0xFA)
-    mouse_write(200);  // 200 сэмплов в секунду (это достаточно быстро)
-    mouse_read();      // Ожидаем ACK (0xFA)
+    mouse_write(0xF3); // Set sample rate
+    uint8_t ack_samplerate_cmd = mouse_read();
+    mouse_write(200);  // 200 сэмплов в секунду
+    uint8_t ack_samplerate_data = mouse_read();
+    vesa_draw_string_hex("Mouse Init: Sample rate (0xF3) ACK_CMD: 0x", 120, y_debug_offset, ack_samplerate_cmd, 0xFFFFFF); y_debug_offset += 12;
+    vesa_draw_string_hex("Mouse Init: Sample rate (200) ACK_DATA: 0x", 120, y_debug_offset, ack_samplerate_data, 0xFFFFFF); y_debug_offset += 12;
 
     mouse_write(0xF4); // Enable data reporting (включить передачу данных)
-    mouse_read();      // Ожидаем ACK (0xFA)
+    uint8_t ack_enable = mouse_read();
+    vesa_draw_string_hex("Mouse Init: Enable data (0xF4) ACK: 0x", 120, y_debug_offset, ack_enable, 0xFFFFFF); y_debug_offset += 12;
+
+    vesa_draw_string("Mouse Init: DONE. Now move the mouse!", 120, y_debug_offset, 0x00FF00); y_debug_offset += 12;
 }

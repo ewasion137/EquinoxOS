@@ -1,6 +1,7 @@
 // vesa.c
 #include "vesa.h"
 #include "font8x8.h"
+#include "../system/string.h"
 
 // Используем uintptr_t для хранения адреса, чтобы не было путаницы с размером типа
 uintptr_t fb_base_addr; 
@@ -78,4 +79,22 @@ void vesa_draw_string(const char* s, int x, int y, uint32_t fg) {
         x += 8;
         s++;
     }
+}
+
+void hex_to_string(uint64_t val, char* buf) {
+    char* hex_chars = "0123456789ABCDEF";
+    int i = 15;
+    buf[16] = '\0';
+    while (i >= 0) {
+        buf[i--] = hex_chars[val & 0xF];
+        val >>= 4;
+    }
+}
+
+// Вспомогательная функция для вывода строки и HEX значения
+void vesa_draw_string_hex(const char* prefix, int x, int y, uint64_t val, uint32_t fg) {
+    vesa_draw_string(prefix, x, y, fg);
+    char buf[17]; // 16 символов для uint64_t + \0
+    hex_to_string(val, buf);
+    vesa_draw_string(buf, x + 8 * (int)strlen(prefix), y, fg); // Смещаемся на длину префикса
 }

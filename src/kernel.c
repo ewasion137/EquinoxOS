@@ -3,7 +3,7 @@
 #include "boot/limine/limine.h"
 #include <stdint.h>
 #include <stddef.h>
-// #include "system/pic.h"        // <-- ДОБАВЬ ЭТО
+#include "system/pic.h"        // <-- ДОБАВЬ ЭТО
 #include "system/idt.h"
 #include "drivers/mouse/mouse.h"
 
@@ -21,39 +21,37 @@ void keyboard_callback() {
 void kmain(void) {
     // 1. Проверяем, что загрузчик ответил
     if (framebuffer_request.response == NULL || framebuffer_request.response->framebuffer_count < 1) {
-        // Если экрана нет — стоим насмерть
         while(1) { __asm__ __volatile__("hlt"); }
     }
-
 
     struct limine_framebuffer *fb = framebuffer_request.response->framebuffers[0];
     init_vesa((uint64_t)fb->address, (uint32_t)fb->width, (uint32_t)fb->height, (uint32_t)fb->pitch);
 
-    // --- ПРАВИЛЬНЫЙ ПОРЯДОК ИНИЦИАЛИЗАЦИИ ---
-    // pic_remap(); // <-- ВЫЗЫВАЙ ПЕРЕД IDT
-    init_idt();  // Инициализирует IDT и включает прерывания STI
-    init_mouse(); // Инициализирует PS/2 контроллер мыши
-
-    // 3. Передаем адрес, ширину, высоту и pitch в драйвер VESA
-    // Саму переменную framebuffer мы тут не храним, она спрятана внутри init_vesa
-    init_vesa((uint64_t)fb->address, (uint32_t)fb->width, (uint32_t)fb->height, (uint32_t)fb->pitch);
-
-    // 4. Рисуем
-    draw_background(); 
+    uint16_t cs_val;
+    __asm__ __volatile__("mov %%cs, %0" : "=r"(cs_val));
     
-    // Окно
+    // --- ПРАВИЛЬНЫЙ ПОРЯДОК ИНИЦИАЛИЗАЦИИ: IDT и PIC сначала, но без STI ---
+    __asm__ __volatile__("cli"); 
+    init_idt();  
+    pic_remap(); 
+    // init_mouse() пока не вызываем!
+
+    // 4. Рисуем ОСНОВНОЙ ФОН И ОКНО
+    draw_background(); 
     draw_transparent_rect(100, 100, 600, 400, 0xFFFFFF, 150);
     draw_rect(100, 100, 600, 30, 0x0055AA);
-    
     vesa_draw_string("EquinoxOS - Graphics Works!", 110, 110, 0xFFFFFF);
     vesa_draw_string("No more stripes please...", 120, 150, 0x000000);
-
-    volatile int32_t old_mouse_x = 0; // <-- ОБЯЗАТЕЛЬНО volatile
-    volatile int32_t old_mouse_y = 0; // <-- ОБЯЗАТЕЛЬНО volatile
-
-    // Буфер для сохранения фона под курсором (16x16 пикселей)
+    
+    // --- ТЕПЕРЬ ИНИЦИАЛИЗИРУЕМ МЫШЬ И ВКЛЮЧАЕМ ПРЕРЫВАНИЯ ---
+    // Дебаг-сообщения из init_mouse() теперь будут видны НАД фоном и окном.
+    init_mouse(); 
+    __asm__ __volatile__("sti"); // Включаем прерывания только после того, как всё готово.
+    
+    // (Код для отрисовки курсора в цикле `while(1)` остается без изменений)
+    volatile int32_t old_mouse_x = 0;
+    volatile int32_t old_mouse_y = 0;
     uint32_t bg_buffer[16 * 16];
-
     while(1) {
         // 1. Восстанавливаем фон там, где курсор был в прошлом кадре
         // Проверка на корректность координат
