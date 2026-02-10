@@ -10,7 +10,7 @@ ASMFLAGS = -f elf64
 OBJ_DIR = obj
 OBJ = $(OBJ_DIR)/kernel.o $(OBJ_DIR)/io.o $(OBJ_DIR)/keyboard.o \
       $(OBJ_DIR)/gdt_flush.o $(OBJ_DIR)/idt.o \
-      $(OBJ_DIR)/pic.o $(OBJ_DIR)/interrupt.o $(OBJ_DIR)/timer.o $(OBJ_DIR)/ata.o \
+      $(OBJ_DIR)/pic.o $(OBJ_DIR)/interrupt.o $(OBJ_DIR)/timer.o $(OBJ_DIR)/ata.o $(OBJ_DIR)/bmp.o \
       $(OBJ_DIR)/memory.o $(OBJ_DIR)/fs.o $(OBJ_DIR)/vesa.o $(OBJ_DIR)/mouse.o $(OBJ_DIR)/string.o
 
 all: setup kernel.elf
@@ -60,3 +60,17 @@ $(OBJ_DIR)/interrupt.o: src/system/interrupt.asm
 clean:
 	@if exist $(OBJ_DIR) rmdir /s /q $(OBJ_DIR)
 	@if exist kernel.elf del kernel.elf
+
+cleanrun: clean all copykernel iso run
+
+copykernel:
+	copy /Y kernel.elf iso_root\kernel.elf
+
+iso:
+	xorriso -as mkisofs -b limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-info-table --efi-boot limine-bios-cd.bin -efi-boot-part --efi-boot-image -o equos.iso iso_root
+
+limine:
+	.\limine.exe bios-install equos.iso
+
+run:
+	qemu-system-x86_64 -cdrom equos.iso

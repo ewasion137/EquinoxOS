@@ -58,7 +58,6 @@ void mouse_flush_buffer() {
 
 // Это наш обработчик прерывания (Interrupt Handler)
 void mouse_callback() {
-    draw_rect(0, 0, 50, 50, 0xFF0000); 
     uint8_t status = inb(PS2_CMD_PORT);
     // Проверяем, что данные пришли именно от мыши (Auxiliary Device Output Buffer Full - бит 5)
     if (!(status & 0x20)) return;
@@ -107,9 +106,6 @@ void mouse_callback() {
             break;
     }
 }
-
-// src/drivers/mouse/mouse.c
-// ... (весь код до init_mouse) ...
 
 void init_mouse() {
     int y_debug_offset = 180; // Начальная Y-координата для вывода дебага
