@@ -25,4 +25,4 @@ xorriso -as mkisofs -b limine-bios-cd.bin -no-emul-boot -boot-load-size 4 -boot-
 
 Made with help of AI.
 
-Trying to finish it.
+Archived because i wanted to pull much more that i know and can handle.
